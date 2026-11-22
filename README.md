@@ -50,11 +50,28 @@ Each candidate takes one agent call (1–5 min, about $0.3 with Opus) plus one t
 
 Each search started from the paper's base model and was given only the paper's number, never the paper itself. Both columns are test scores; the reproduced scores come from the model the search picked, trained once.
 
-| Paper | Task | Paper's performance | Reproduced performance |
+| Paper | Task | Paper's performance | Reproduced (mean ± std, n runs) |
 |---|---|---|---|
-| XChrom | Peak accessibility for unseen cells from their RNA | auROC 0.83 | 0.828, 0.824, 0.825 (3 runs) |
-| ZEN | Zero-shot neural decoding of unseen mice | 0.437 | 0.426 |
-| scooby | Single-cell RNA coverage from a cell embedding | Pearson 0.501 | 0.474 |
+| XChrom | Peak accessibility for unseen cells from their RNA | auROC 0.83 | 0.826 ± 0.002 (n = 3) |
+| ZEN | Zero-shot neural decoding of unseen mice | 0.437 | 0.426 (n = 1) |
+| scooby | Single-cell RNA coverage from a cell embedding | Pearson 0.501 | 0.474 (n = 1) |
+
+What the search changed in the base architecture:
+
+```
+XChrom   base:  DNA seq → CNN ─┐
+                per-cell lookup table ─┴─ dot → accessibility    (only cells seen in training)
+         found: DNA seq → CNN ─┐
+                cell RNA → MLP encoder ─┴─ FiLM / dot (+ sequencing-depth term) → accessibility
+                                                                  (any cell with an RNA profile)
+
+ZEN      base:  spikes → per-session learned unit vectors → sum → transformer → wheel, reward
+         found: spikes → unit vectors from each unit's ISI features (MLP)
+                       → set transformer over units → transformer → wheel, reward   (no per-mouse parameters)
+
+scooby   base:  frozen DNA trunk → per-cell-type 1×1 head
+         found: same modules, tuned hyperparameters only (the explorer was starved; see Limitations)
+```
 
 The validation data are lab-internal and not part of this repository.
 
