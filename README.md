@@ -56,22 +56,9 @@ Each search started from the paper's base model and was given only the paper's n
 | ZEN | Zero-shot neural decoding of unseen mice | 0.437 | 0.426 (n = 1) |
 | scooby | Single-cell RNA coverage from a cell embedding | Pearson 0.501 | 0.474 (n = 1) |
 
-What the search changed in the base architecture:
+What the search changed in the base architecture (orange = new module):
 
-```
-XChrom   base:  DNA seq → CNN ─────────┐
-                per-cell lookup table ─┴─ dot → accessibility    (only cells seen in training)
-         found: DNA seq → CNN ──────────┐
-                cell RNA → MLP encoder ─┴─ FiLM / dot (+ sequencing-depth term) → accessibility
-                                                                  (any cell with an RNA profile)
-
-ZEN      base:  spikes → per-session learned unit vectors → sum → transformer → wheel, reward
-         found: spikes → unit vectors from each unit's ISI features (MLP)
-                       → set transformer over units → transformer → wheel, reward   (no per-mouse parameters)
-
-scooby   base:  frozen DNA trunk → per-cell-type 1×1 head
-         found: same modules, tuned hyperparameters only (the explorer was starved; see Limitations)
-```
+![Before/after architectures](docs/arch_changes.png)
 
 The validation data are lab-internal and not part of this repository.
 
