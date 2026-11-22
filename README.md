@@ -59,9 +59,9 @@ Each search started from the paper's base model and was given only the paper's n
 What the search changed in the base architecture:
 
 ```
-XChrom   base:  DNA seq → CNN ─┐
+XChrom   base:  DNA seq → CNN ─────────┐
                 per-cell lookup table ─┴─ dot → accessibility    (only cells seen in training)
-         found: DNA seq → CNN ─┐
+         found: DNA seq → CNN ──────────┐
                 cell RNA → MLP encoder ─┴─ FiLM / dot (+ sequencing-depth term) → accessibility
                                                                   (any cell with an RNA profile)
 
