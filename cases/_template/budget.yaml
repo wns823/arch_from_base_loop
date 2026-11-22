@@ -1,0 +1,15 @@
+# Case budget (see README "Add your own model"). Only train_samples is required; everything else has a default.
+mode: improve                 # improve = your own target; reproduce = paper reproduction (needs the case gate)
+train_samples: 160000         # training samples seen per candidate (here 20 epochs of 8,000)
+candidates_per_run: 20        # models tried per run (each = one agent call + one training)
+target: {value: 0.9, metric: "R^2 on held-out-context samples", higher_is_better: true}
+sigma_seed: auto              # auto = train the base model with seeds 0,1,2 at init-run and use their s.d.
+size_factor: 4.0              # size limits = 4 x the base model (or set max_params / max_flops)
+# max_params: 200000
+# max_flops: 20000000
+timeout_ratio_to_H_time: 3.0  # candidate timeout = 3 x the base model's train time + 300 s
+# final_train_samples: 480000 # retrain the selected model longer before the single test score
+notes_for_agents:             # shown to every agent; constraints or ideas, in plain words
+  - Keep the convolutional sequence tower; change only how the context enters the model.
+# trainer: trainer.py         # default: cases/<name>/trainer.py
+# higher_is_better: true      # direction of data_loader.score (default from target)

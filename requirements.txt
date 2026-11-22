@@ -1,0 +1,7 @@
+# ag_harness runtime (trainers, scorers, driver). Install torch for your CUDA first if the default wheel does not match
+# your driver: https://pytorch.org/get-started/locally/  (this server: torch 2.7.1+cu118, python 3.12)
+torch>=2.3
+numpy>=1.26
+pyyaml>=6.0
+# only for case V1 (FID scorer): scipy, torchvision
+# optional, W&B Weave logging of agent calls, in a SEPARATE python (AGH_WEAVE_PY): pip install weave

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# ag_harness tool entry point. Agents may call only the subcommands their policy allows (.claude/hooks/policy.py).
+#   main session only (agents have no shell, REQ-016): init-run loop next run-candidate ledger space-check finalize judge status doctor
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PY="${AGH_PYTHON:-$ROOT/.venv/bin/python}"
+cd "$ROOT"
+exec "$PY" -m harness.cli "$@"

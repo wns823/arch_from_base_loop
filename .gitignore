@@ -1,0 +1,31 @@
+# data and outputs stay on each server (copy built-in case data with harness/bin/sync_data.sh)
+cases/*/data
+data_store/
+runs/
+reports/
+
+# environments and caches
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.ipynb_checkpoints/
+
+# per-user Claude Code files (shared: .claude/settings.json, agents/, agent-memory/, hooks/, skills/)
+.claude/settings.local.json
+CLAUDE.local.md
+
+# local secrets and editor/OS clutter
+.env
+*.swp
+.DS_Store
+
+# lab-internal material kept out of the public repo: validation cases (private data, gate results, paper
+# identities that a future search-space agent could find on the web), decision logs, specs, slides
+cases/*
+!cases/_template/
+harness/train_v*.py
+harness/fid_inception.py
+validation/
+spec_interview/
+project_spec.md
