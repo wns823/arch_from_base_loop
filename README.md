@@ -48,21 +48,21 @@ Each candidate takes one agent call (1–5 min, about $0.3 with Opus) plus one t
 
 ## Validation
 
-Each validation case starts from the paper's base model, with a new conditioning requirement. The agents see only the paper's number. Before any search, we checked each setup by reimplementing the paper's model (H) under the same data, budget and scorer.
+Each search started from the paper's base model and was given only the paper's number, never the paper itself. Both columns are test scores; the reproduced scores come from the model the search picked, trained once.
 
-| Case | Paper | Requirement | Target | H | Harness (test / target) |
-|---|---|---|---|---|---|
-| V2 | XChrom | Peak accessibility for unseen cells from their RNA | auROC 0.83 | 0.991 | 3/3 runs reproduced (0.993–0.997) |
-| V3 | scooby | Single-cell RNA coverage from a cell embedding | Pearson 0.501 | 0.970 | r1 0.946; r2–r3 running |
-| V6 | ZEN | Zero-shot neural decoding of unseen mice | 0.437 | 0.935 | r1 0.975; r2–r3 running |
+| Paper | Task | Paper's performance | Reproduced performance |
+|---|---|---|---|
+| XChrom | Peak accessibility for unseen cells from their RNA | auROC 0.83 | 0.828, 0.824, 0.825 (3 runs) |
+| ZEN | Zero-shot neural decoding of unseen mice | 0.437 | 0.426 |
+| scooby | Single-cell RNA coverage from a cell embedding | Pearson 0.501 | 0.474 |
 
-"Reproduced" means test ≥ 0.95 × the paper's number from one training run. The validation cases need lab-internal data and are not part of this repository.
+The validation data are lab-internal and not part of this repository.
 
 ## Limitations
 
 - **Results can differ from run to run.** In the validation cases, the search found architectures that reach the target score. But the agents are LLMs, so each run can take a different path and end with a different architecture and score. Do not rely on a single run; run it several times (`harness/bin/chain.sh`).
-- **The explorer can be under-used.** In one V3 run, the explorer's first candidate scored poorly, and the bandit then gave every remaining turn to the exploiter. That run only tuned the base model's settings and never tried a new module. Each agent now gets at least 2 of every 8 turns, but check the agent column in `LEDGER.md` to make sure modules were actually tried.
-- **Reward hacking is a risk.** Agents optimise the score they are given, so a gap in the evaluation can raise the score without a better model. In V6, candidates normalised over the test trials evaluated together in one batch and scored 1.21 × the paper; we closed the gap by evaluating one trial at a time and discarded those runs. Keep `EVAL_BATCH = 1`, and read the winning code in `best/` before trusting a number.
+- **The explorer can be under-used.** In the scooby run, the explorer's first candidate scored poorly, and the bandit then gave every remaining turn to the exploiter. That run only tuned the base model's settings and never tried a new module. Each agent now gets at least 2 of every 8 turns, but check the agent column in `LEDGER.md` to make sure modules were actually tried.
+- **Reward hacking is a risk.** Agents optimise the score they are given, so a gap in the evaluation can raise the score without a better model. In the ZEN case, candidates normalised over the test trials evaluated together in one batch and scored 1.21 × the paper; we closed the gap by evaluating one trial at a time and discarded those runs. Keep `EVAL_BATCH = 1`, and read the winning code in `best/` before trusting a number.
 
 ## Contributors
 
