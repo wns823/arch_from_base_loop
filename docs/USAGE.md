@@ -100,7 +100,7 @@ Only `train_samples` is required.
 ## Rules the code enforces
 
 - **Run length:** at most `candidates_per_run` candidates. A run stops early after two search-space revisions in a row bring no gain, and allows at most five revisions.
-- **Bandit:** UCB over explorer and exploiter with reward clip((score − best)/σ, −1, +3), and −2 for a failed candidate. Each agent gets at least 2 of every 8 candidates.
+- **Bandit:** UCB over explorer and exploiter with reward clip((score − best)/σ, −1, +3); a failed candidate gets −2 (exploiter) or −1 (explorer). When an exploiter candidate gains, the explorer candidate whose module it tuned (nearest explorer among its last 3 parents) gets half of that reward as extra credit. Each agent gets at least 2 of every 8 candidates.
 - **Sandbox:** bubblewrap, with no network and one GPU. A size check runs before training.
 - **Access:** agents read only their own run folder and write only the candidate files. There is no memory across runs.
 - **Test split:** scored once per run, by `finalize`.

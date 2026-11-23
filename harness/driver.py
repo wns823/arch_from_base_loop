@@ -45,6 +45,8 @@ P_OFF_AXIS = 0.2      # explorer: chance of an off-axis edit
 UCB_C = math.sqrt(2)
 REWARD_CLIP = 3.0      # delta reward clip, in seed σ
 REWARD_WINDOW = 8      # delta reward: mean over the agent's last K rewards
+LINEAGE_SHARE = 0.5    # reward v2: share of an exploiter's positive reward credited to the explorer whose module it tuned
+LINEAGE_DEPTH = 3      # reward v2: how many parents up to look for that explorer candidate
 ARM_WINDOW, ARM_MIN = 8, 2   # each agent makes at least ARM_MIN of the last ARM_WINDOW candidates (fix 2026-11-22)
 MAX_RETRIES = 2
 
@@ -311,6 +313,11 @@ def init_run(case, run=None):
                              "reward_mode": budget["reward_mode"],
                              # bandit fix 2026-11-22: asymmetric clip so one bad untuned module cannot starve an agent
                              "reward_clip": [-1.0, REWARD_CLIP], "reward_fail": -2.0,
+                             # reward v2 (2026-11-23): a new module is scored untuned against a tuned best, and the
+                             # exploiter that later tunes it collects the gain. Credit part of that gain back to the
+                             # explorer that introduced it, and penalise a failed explorer candidate less (new modules
+                             # fail more often; the error still goes back to the agent).
+                             "reward_lineage": [LINEAGE_SHARE, LINEAGE_DEPTH], "reward_fail_explorer": -1.0,
                              "ssa_log": [], "bandit": {"exploiter": [0, 0.0], "explorer": [0, 0.0]},
                              "since_ssa": 0, "finalized": False, "next_id": 1})
     (R / "cands" / "000").mkdir(parents=True)
@@ -917,7 +924,9 @@ def run_candidate_step(R, dec):
         # UCB bonus; the clip stops one broken candidate from sinking an agent's mean
         a0 = (jload(R / "cands" / "000" / "result.json", {}) or {}).get("score", best_before)
         lo, hi = st.get("reward_clip", [-REWARD_CLIP, REWARD_CLIP])
-        if s is None and "reward_fail" in st:
+        if s is None and dec["agent"] == "explorer" and "reward_fail_explorer" in st:
+            reward = st["reward_fail_explorer"]
+        elif s is None and "reward_fail" in st:
             reward = st["reward_fail"]
         else:
             reward = max(lo, min(hi, ((s if s is not None else a0) - best_before) / st["sigma"]))
@@ -926,6 +935,7 @@ def run_candidate_step(R, dec):
     n, tot = st["bandit"][dec["agent"]]
     st["bandit"][dec["agent"]] = [n + 1, tot + reward]
     st.setdefault("bandit_hist", {"exploiter": [], "explorer": []})[dec["agent"]].append(reward)
+    credit = lineage_credit(R, st, dec, reward)
     st["since_ssa"] += 1
     jsave(R / "state.json", st)
     if jload(R / "boundary.json").get("ssa_protocol", 1) >= 2 and dec["agent"] == "exploiter":
@@ -934,6 +944,8 @@ def run_candidate_step(R, dec):
         if ea.get(cid) != ea.get(dec["parent"]):   # exploiter must not change modules (logged, not rejected)
             event(R, "role_violation", cand=cid, agent="exploiter", parent_axes=ea.get(dec["parent"]), cand_axes=ea.get(cid))
     event(R, "candidate", cand=cid, decision=dec, score=s, reward=reward, reply=reply[-1500:])
+    if credit:
+        event(R, "lineage_credit", cand=cid, **credit)
     regen_ledger(R)
 
 
@@ -950,6 +962,28 @@ def loop(case, run):
             run_candidate_step(R, dec)
     fin = finalize(case, run)
     return {"stopped": dec["why"], "finalize": fin}
+
+
+def lineage_credit(R, st, dec, reward):
+    """Reward v2 (runs started with state["reward_lineage"]): when an exploiter candidate earns a positive reward,
+    the nearest explorer candidate among its last LINEAGE_DEPTH parents gets LINEAGE_SHARE of it as an extra reward
+    (added to the explorer's reward history, without counting as a turn). Mutates st; returns the credit or None."""
+    if "reward_lineage" not in st or dec["agent"] != "exploiter" or reward <= 0:
+        return None
+    share, depth = st["reward_lineage"]
+    cid = dec["parent"]
+    for _ in range(int(depth)):
+        if not cid or cid == "000":
+            return None
+        n = jload(R / "cands" / cid / "notes.json", {}) or {}
+        if n.get("agent") == "explorer":
+            extra = share * reward
+            cnt, tot = st["bandit"]["explorer"]
+            st["bandit"]["explorer"] = [cnt, tot + extra]
+            st["bandit_hist"]["explorer"].append(extra)
+            return {"to": cid, "credit": extra}
+        cid = n.get("parent")
+    return None
 
 
 # ---------------------------------------------------------------- finalize (test once)
